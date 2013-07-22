@@ -97,8 +97,8 @@ def solveIt(inputData):
 
     sol=list(solution)
 
-    pobj=323000-1
-    while obj>pobj:
+
+    for i in range(1000):
         if i%10==0:
             print i
         r1 = randint(0,nodeCount-1)
@@ -114,7 +114,7 @@ def solveIt(inputData):
         order[r2]=t
    
         tobj,tsol=incr(order)
-        if tobj<=obj or tobj-obj<1:
+        if obj-tobj>0.1:
             print 'updated from ',obj,'to ',tobj
             obj=tobj
             solution=tsol
@@ -127,7 +127,7 @@ def solveIt(inputData):
             return randint(-1,1)
         order_ = order[:r1]+list(sorted(order[r1:r2],randcmp))+order[r2:]
         tobj,tsol=incr(order_)
-        if tobj<=obj or tobj-obj<1:
+        if obj-tobj>0.1:
             print 'updated from ',obj,'to ',tobj,'by reverse'
             obj=tobj
             solution=tsol
