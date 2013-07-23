@@ -28,7 +28,7 @@ def solveIt(inputData):
         degree[int(parts[0])] += 1
         degree[int(parts[0])] += 1
 
-    def greedy_coloring(ordering, now):
+    def greedy_coloring(ordering):
         count = 0
         color = [-1] * nodeCount
         
@@ -49,54 +49,94 @@ def solveIt(inputData):
         c = Counter(color);
         
         for item in c:
-            value+= c[item]**2
-        value -= len(c)**2
-        return (count, color, value)
+            value+= c[item]**2.5
+        value -= len(c)**3
+        return (-value,color,count)
         
-        
+    def cross(perm1,perm2):
+        l = len(perm1)
+        vis = [ 0 ]* (l+1)
+        cnt = 0
+        bound = l/2
+        for i in perm1:
+            if cnt<bound:
+                vis[i]=1
+                cnt+=1
+        ret = []
+        for x in perm2:
+            if not vis[x]:
+                vis[x]=1
+                ret.append(x)
+                cnt+=1
+            if cnt==l:
+                break
+        ret += perm1[:bound]
+        return ret
+    def mutate(perm,num):
+        ret = perm[:]
+        l = len(perm)
+        for i in range(num):
+            r1 = random.randint(0,l-1)
+            r2 = random.randint(0,l-1)
+            t = ret[r1]
+            ret[r1]=ret[r2]
+            ret[r2]=t
+        return ret
         
         
     print 'node#', nodeCount, 'edge#', edgeCount    
     # build a trivial solution
     # every node has its own color
-    solution = greedy_coloring(range(0, nodeCount), 10000)
+    solution = greedy_coloring(range(0, nodeCount))
     
-
-    order = map(lambda x:x[1], sorted(zip(degree, range(0, nodeCount))))
+    order = range(0, nodeCount)
     random.shuffle(order)
-    _notupdated = 0
-    _canceled = 0
-    _prev = -2147483648
-    _max = -2147483648
-    for i in range(0, 1000):
-        if i % 100 == 0:
-            print 'iter', i
-        r1 = random.randint(0, nodeCount - 1)
-        r2 = random.randint(0, nodeCount - 1)
-        if r1 == r2:
-            continue
-        t = order[r1]
-        order[r1] = order[r2]
-        order[r2] = t
-        sol = greedy_coloring(order, solution[0])
-        if sol[0] < solution[0]:
-            print 'updated from ', solution[0], 'to ', sol[0]
-            solution = sol
-        if sol[2] >= _prev:
-            _prev=sol[2]
-            if sol[2]>_max:
-                _max=sol[2]
-                print _max
-        else:
-            t = order[r1]
-            order[r1] = order[r2]
-            order[r2] = t
-            _notupdated += 1
+
+    pcnt =100
+    population= []
+
+    
+    for i in range(pcnt):
+        random.shuffle(order)
+        population.append((greedy_coloring(order),order[:]))
+
+
+    val = 1e9
+    for i in range(0,100):
+        if i%20==0:
+            print i
+        vl = population[:]
+        for v in vl:
+            o = v[1]
+            o=mutate(o,random.randint(1,5))
+            sol = greedy_coloring(o)
+            population.append((sol,o))
+            if sol[0] < v[0][0]:
+                if sol[0]<val:
+                    print 'update 1 value from',val,'to',sol[0]
+                    val=sol[0]
+                if sol[2] < solution[2]:
+                    print 'update 1 from',solution[2],'to',sol[2]
+                    solution=sol
+        for i in range(len(vl)):
+            r1 = random.randint(0,pcnt-1)
+            r2 = random.randint(0,pcnt-1)
+            o = cross(vl[r1][1],vl[r2][1])
+            sol = greedy_coloring(o)
+            population.append((sol,o))
+            if sol[0]<val:
+                print 'update 2 value from',val,'to',sol[0]
+                val=sol[0]
+            if sol[2] < solution[2]:
+                print 'update 2 from',solution[2],'to',sol[2]
+                solution=sol            
+        population.sort()
+        population=population[:pcnt]
 
             
 
     # prepare the solution in the specified output format
-    outputData = str(solution[0]) + ' ' + str(0) + '\n'
+    outputData = str(solution[2]) + ' ' + str(0) + '\n'
     outputData += ' '.join(map(str, solution[1]))
 
     return outputData
