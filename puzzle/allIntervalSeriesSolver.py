@@ -3,22 +3,22 @@
 
 def solveIt(n):
     # Modify this code to run your puzzle solving algorithm
-    
+
     # define the domains of all the variables (0..n-1)
-    domains = [range(0,n)]*n
-    
+    domains = [range(0, n)] * n
+
     # start a trivial depth first search for a solution
-    sol = tryall([],domains)
-    
+    sol = tryall([], domains)
+
     # prepare the solution in the specified output format
     # if no solution is found, put 0s
     outputData = str(n) + '\n'
     if sol == None:
         print 'no solution found.'
-        outputData += ' '.join(map(str, [0]*n))+'\n'
-    else: 
-        outputData += ' '.join(map(str, sol))+'\n'
-    
+        outputData += ' '.join(map(str, [0] * n)) + '\n'
+    else:
+        outputData += ' '.join(map(str, sol)) + '\n'
+
     return outputData
 
 
@@ -31,12 +31,12 @@ def tryall(assignment, domains):
             return assignment
         else:
             return None
-    
+
     # recursive-case: try each value in the next domain
     # if we find a solution return it. otherwise, try the next value
     else:
         for v in domains[0]:
-            sol = tryall(assignment[:]+[v],domains[1:])
+            sol = tryall(assignment[:] + [v], domains[1:])
             if sol != None:
                 return sol
 
@@ -44,15 +44,15 @@ def tryall(assignment, domains):
 # checks if an assignment is feasible
 def checkIt(sol):
     n = len(sol)
-    
+
     items = set(sol)
     if len(items) != n:
         return False
-    
-    deltas = set([abs(sol[i]-sol[i+1]) for i in range(0,n-1)])
-    if len(deltas) != n-1:
+
+    deltas = set([abs(sol[i] - sol[i + 1]) for i in range(0, n - 1)])
+    if len(deltas) != n - 1:
         return False
-    
+
     return True
 
 
@@ -68,5 +68,6 @@ if __name__ == "__main__":
         print(solveIt(n))
 
     else:
-        print('This test requires an instance size.  Please select the size of problem to solve. (i.e. python allIntervalSeriesSolver.py 5)')
+        print(
+        'This test requires an instance size.  Please select the size of problem to solve. (i.e. python allIntervalSeriesSolver.py 5)')
 
