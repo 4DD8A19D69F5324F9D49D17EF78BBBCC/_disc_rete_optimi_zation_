@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+from magic_square import magic
 
 def solveIt(n):
     # Modify this code to run your puzzle solving algorithm
@@ -12,8 +13,31 @@ def solveIt(n):
     domains = [range(1, n * n + 1)] * (n * n)
 
     # start a trivial depth first search for a solution
-    sol = tryall([], domains)
 
+
+    tsol = [list(row) for row in map(list, list(magic(n)))]
+
+
+
+    for i in range(n):
+        tmin = 1e9
+        tpos = 0
+        for j in range(i,n):
+            if tsol[j][i]<tmin:
+                tmin = tsol[j][i]
+                tpos = j
+        tsol[i],tsol[tpos] = tsol[tpos],tsol[i]
+
+
+
+
+    print tsol
+
+
+
+
+    sol = sum(tsol, [])
+    print checkIt(sol)
     # prepare the solution in the specified output format
     # if no solution is found, put 0s
     outputData = str(n) + '\n'

@@ -5,11 +5,23 @@ def solveIt(n):
     # Modify this code to run your puzzle solving algorithm
 
     # define the domains of all the variables (0..n-1)
-    domains = [range(0, n)] * n
 
     # start a trivial depth first search for a solution
-    sol = tryall([], domains)
+    sol = []
 
+    cur = 0
+    d = 0
+    f = 0
+    for i in xrange(0, n):
+        if cur == 0:
+            sol.append(d)
+            d += 1
+        else:
+            sol.append(n-1-f)
+            f += 1
+        cur ^= 1
+
+   # print checkIt(sol)
     # prepare the solution in the specified output format
     # if no solution is found, put 0s
     outputData = str(n) + '\n'

@@ -1,6 +1,5 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-
 def solveIt(n):
     # Modify this code to run your puzzle solving algorithm
 
@@ -8,8 +7,10 @@ def solveIt(n):
     domains = [range(0, n)] * n
 
     # start a trivial depth first search for a solution
-    sol = tryall([], domains)
 
+
+    sol = [n-4, 2, 1] + [0] * (n - 7) + [1] + [0] * 3
+    print checkIt(sol)
     # prepare the solution in the specified output format
     # if no solution is found, put 0s
     outputData = str(n) + '\n'
