@@ -15,29 +15,11 @@ def solveIt(n):
     # start a trivial depth first search for a solution
 
 
+
     tsol = [list(row) for row in map(list, list(magic(n)))]
-
-
-
-    for i in range(n):
-        tmin = 1e9
-        tpos = 0
-        for j in range(i,n):
-            if tsol[j][i]<tmin:
-                tmin = tsol[j][i]
-                tpos = j
-        tsol[i],tsol[tpos] = tsol[tpos],tsol[i]
-
-
-
-
-    print tsol
-
-
-
+    tsol = list(reversed(tsol))
 
     sol = sum(tsol, [])
-    print checkIt(sol)
     # prepare the solution in the specified output format
     # if no solution is found, put 0s
     outputData = str(n) + '\n'
