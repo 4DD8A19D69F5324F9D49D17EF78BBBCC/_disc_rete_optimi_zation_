@@ -1,156 +1,198 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-import random
-import itertools
-from collections import Counter
 
-def solveIt(inputData):
+import networkx as nx
+import numpy as np
+import sys
+import random
+from Numberjack import *
+from parsing import *
+from utils import *
+from kemp_chain import *
+from cliquesolve import convert_to_cliques, set_cover_model
+from time import sleep
+
+sys.setrecursionlimit(100000)
+
+
+
+
+
+def graph_coloring_with_fixed(cliqs,G,limit,fixed=[]):
+    n = G.number_of_nodes()
+    model = Model()
+    
+    if fixed==[]:
+        fixed = [-1]*n
+    
+    
+    fixed = [int(x) for x in fixed]    
+    
+    xs = [ Variable(limit) for i in range(n)]
+    ncons =0
+    
+    for cliq in cliqs:
+        model.add(AllDiff([xs[i] for i in cliq]))
+        ncons +=1    
+    for i in range(len(fixed)):
+        if fixed[i]!=-1:
+            model.add(xs[i]==int(fixed[i]))
+    for x,y in G.edges_iter():
+        if fixed[x]!=-1 and fixed[y]!=-1:
+            continue 
+        
+        if fixed[x]!=-1:
+            model.add(fixed[x] != xs[y])
+        elif fixed[y]!=-1:
+            model.add(xs[x] !=fixed[y])
+        else:
+            model.add(xs[x] != xs[y])
+            ncons +=1    
+    
+    #model.add(Minimize(Max(xs)))
+    print '#Constraints=',ncons
+    return xs,model
+
+
+
+
+def perturb(G,ans,d,p):
+    s = set(ans)
+    delset = set(random.sample(s,min(d,len(s))))
+    s-=delset
+    if -1 in s:
+        s.remove(-1)
+    dct = {}
+    for i,elem in enumerate(s):
+        dct[elem] = i
+    ret= [dct[ans[i]] if ans[i]  in dct and random.random()<p else -1 for i in range(len(ans))]
+    
+    
+    r = random.randint(0,G.number_of_nodes()-1)
+    for x in G[r]:
+        if random.random()>p:
+            ret[x] = -1
+    
+    
+    return ret
+
+
+    
+def solve_with_numberjack2(var,model):   
+    solver = model.load('Mistral2',X=var)
+    solver.setNodeLimit(10000)
+    solver.setVerbosity(2)
+#     solver.setHeuristic('MinDomain','Lex',1)
+    if solver.solve():
+        ret= [ int(str(x)) for x in var]
+        return ret
+
+
+def solve(G,save=None):
+    if save:
+        solution = save
+    else:
+        solution = greedy_coloring(G)
+    
+    n = G.number_of_nodes()
+    m = G.number_of_edges()
+    C = n*(n-1)/2
+    ratio = m*1.0/C
+    
+    
+    
+    
+    
+    
+    def localsolve():
+        tmpsolution = np.array(solution)
+        failed = 0
+        nc = len(set(solution)) -1
+        
+        p = 0.25
+        
+        restart_flag = False
+        while True:
+            try:
+                print 'trying:',nc
+                oldobj = get_objective(tmpsolution)
+                tmpsolution = local_optimize(G, tmpsolution, 5000)
+                newobj =  get_objective(tmpsolution)
+                print oldobj,newobj
+                pt = perturb(G, tmpsolution, 7, 0.6+p)
+                nblank = sum(x==-1 for x in pt)
+            
+                print '#blank=',nblank
+                var,model = graph_coloring_with_fixed([],G,nc,pt)
+                result = run_in_sub(solve_with_numberjack2,(var,model))
+                
+                
+                
+                
+                if result is not None:
+                    p=0.3
+                    result = np.array(result)
+                    failed = 0
+                    tmpsolution = result
+                    print result
+                    nc = len(set(result))-1
+                else:
+                    failed+=1
+                    p*=0.999
+                    print nc,failed
+                if failed>=1000:
+                    break
+            except KeyboardInterrupt:
+                break
+        return tmpsolution
+    
+    
+    if ratio>0.8 and n<=300:
+        import cliquesolve   
+        solution = cliquesolve.cliquesolve(G)
+    else:
+        solution = localsolve()
+
+    return solution
+
+
+
+
+
+
+
+def solve_it(input_data,save=None):
     # Modify this code to run your optimization algorithm
 
     # parse the input
-    lines = inputData.split('\n')
-
-    firstLine = lines[0].split()
-    nodeCount = int(firstLine[0])
-    edgeCount = int(firstLine[1])
-
-    edges = []
-    degree = []
-    for i in range(0, nodeCount):
-        edges.append([])
-        degree.append(0)
-    
-    for i in range(1, edgeCount + 1):
-        line = lines[i]
-        parts = line.split()      
-        edges[int(parts[0])].append(int(parts[1]));
-        edges[int(parts[1])].append(int(parts[0]));
-        degree[int(parts[0])] += 1
-        degree[int(parts[0])] += 1
-
-    def greedy_coloring(ordering):
-        count = 0
-        color = [-1] * nodeCount
-        
-        for item in ordering:
-            vis = [0] * (count + 1)
-            for x in edges[item]:
-                if color[x] != -1:
-                    vis[color[x]] = 1
-            for i in range(0, count):
-                if vis[i] == 0:
-                    color[item] = i;
-                    break;
-            if color[item] == -1:
-                color[item] = count;
-                count += 1;
-        value = 0;
-        
-        c = Counter(color);
-        
-        for item in c:
-            value+= c[item]**2.5
-        value -= len(c)**3
-        return (-value,color,count)
-        
-    def cross(perm1,perm2):
-        l = len(perm1)
-        vis = [ 0 ]* (l+1)
-        cnt = 0
-        bound = l/2
-        for i in perm1:
-            if cnt<bound:
-                vis[i]=1
-                cnt+=1
-        ret = []
-        for x in perm2:
-            if not vis[x]:
-                vis[x]=1
-                ret.append(x)
-                cnt+=1
-            if cnt==l:
-                break
-        ret += perm1[:bound]
-        return ret
-    def mutate(perm,num):
-        ret = perm[:]
-        l = len(perm)
-        for i in range(num):
-            r1 = random.randint(0,l-1)
-            r2 = random.randint(0,l-1)
-            t = ret[r1]
-            ret[r1]=ret[r2]
-            ret[r2]=t
-        return ret
-        
-        
-    print 'node#', nodeCount, 'edge#', edgeCount    
-    # build a trivial solution
-    # every node has its own color
-    solution = greedy_coloring(range(0, nodeCount))
-    
-    order = range(0, nodeCount)
-    random.shuffle(order)
-
-    pcnt =100
-    population= []
-
-    
-    for i in range(pcnt):
-        random.shuffle(order)
-        population.append((greedy_coloring(order),order[:]))
+    G = parse_input(input_data)
+    print G.number_of_nodes(),G.number_of_edges()
 
 
-    val = 1e9
-    for i in range(0,100):
-        if i%20==0:
-            print i
-        vl = population[:]
-        for v in vl:
-            o = v[1]
-            o=mutate(o,random.randint(1,5))
-            sol = greedy_coloring(o)
-            population.append((sol,o))
-            if sol[0] < v[0][0]:
-                if sol[0]<val:
-                    print 'update 1 value from',val,'to',sol[0]
-                    val=sol[0]
-                if sol[2] < solution[2]:
-                    print 'update 1 from',solution[2],'to',sol[2]
-                    solution=sol
-        for i in range(len(vl)):
-            r1 = random.randint(0,pcnt-1)
-            r2 = random.randint(0,pcnt-1)
-            o = cross(vl[r1][1],vl[r2][1])
-            sol = greedy_coloring(o)
-            population.append((sol,o))
-            if sol[0]<val:
-                print 'update 2 value from',val,'to',sol[0]
-                val=sol[0]
-            if sol[2] < solution[2]:
-                print 'update 2 from',solution[2],'to',sol[2]
-                solution=sol            
-        population.sort()
-        population=population[:pcnt]
-
-            
+    solution = solve(G,save)
 
     # prepare the solution in the specified output format
-    outputData = str(solution[2]) + ' ' + str(0) + '\n'
-    outputData += ' '.join(map(str, solution[1]))
+    output_data = str(len(set(solution))) + ' ' + str(0) + '\n'
+    output_data += ' '.join(map(str, solution))
 
-    return outputData
-
-
-import sys
+    return output_data
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
-        fileLocation = sys.argv[1].strip()
-        inputDataFile = open(fileLocation, 'r')
-        inputData = ''.join(inputDataFile.readlines())
-        inputDataFile.close()
-        print solveIt(inputData)
+        
+        file_location = sys.argv[1].strip()
+        try:
+            save = open(file_location+".out").readlines()
+            save = [int(x) for x in save[1].split()]
+        except:
+            save = None
+        input_data_file = open(file_location, 'r')
+        input_data = ''.join(input_data_file.readlines())
+        input_data_file.close()
+        G = parse_input(input_data)
+        sol= solve_it(input_data,save)
+        print sol
+        open(file_location+".out","w").write(sol)        
+        
     else:
         print 'This test requires an input file.  Please select one from the data directory. (i.e. python solver.py ./data/gc_4_1)'
-

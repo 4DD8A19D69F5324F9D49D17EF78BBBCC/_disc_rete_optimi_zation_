@@ -1,4 +1,6 @@
 *.py[cod]
+submit.py
+
 
 # C extensions
 *.so
